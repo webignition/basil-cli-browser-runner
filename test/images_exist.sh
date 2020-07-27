@@ -3,10 +3,6 @@
 CURRENT_DIRECTORY="$(dirname "$0")"
 source ${CURRENT_DIRECTORY}/../build/.image_data.sh
 
-declare -a IMAGE_NAMES=(
-  ${CHROME_IMAGE_NAME}
-)
-
 for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
   OUTPUT=$(docker images | tail -n +2 | awk '{print $1":"$2}' | grep ${IMAGE_NAME} | wc -l)
 
