@@ -1,0 +1,8 @@
+language: minimal
+
+install:
+  - ./build/build.sh
+
+script:
+  - ./test/images_exist.sh
+  - ./test/test.sh
