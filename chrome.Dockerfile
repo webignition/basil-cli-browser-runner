@@ -13,5 +13,3 @@ RUN apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ENV PANTHER_NO_SANDBOX=1
-
-# docker build -f docker/Chrome.Dockerfile -t smartassert/chrome-runner:master .
