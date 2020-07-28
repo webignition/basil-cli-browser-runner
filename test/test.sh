@@ -20,22 +20,24 @@ function setup() {
 
 function main() {
   echo "Test::main"
-  echo "Testing "${IMAGE_NAME}
 
-  COMMAND="./bin/runner --path=generated"
+  COMMAND="./bin/runner --path=generated/"
 
   for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
+    echo "Testing "${IMAGE_NAME}
+
     BROWSER=$(echo ${IMAGE_NAME} | cut -d '/' -f 2 | cut -d '-' -f 1)
     SOURCE_PATH="$(pwd)"/test/basil/${BROWSER}
 
-    docker run \
+    COMPILER_OUTPUT=$(docker run \
       -v ${SOURCE_PATH}:/app/basil \
       -v ${TARGET_PATH}:/app/generated \
       -it \
-      compiler-test ./compiler --source=basil --target=generated
+      compiler-test ./compiler --source=basil --target=generated)
 
-    EXECUTABLE="${IMAGE_NAME} ${COMMAND}"
+    GENERATED_TEST_FILENAME="G"$(echo ${COMPILER_OUTPUT} | xargs | cut -d 'G' -f 2)
 
+    EXECUTABLE="${IMAGE_NAME} ${COMMAND}${GENERATED_TEST_FILENAME}"
     docker run \
       -v ${TARGET_PATH}:/app/generated \
       --network=test-network \
