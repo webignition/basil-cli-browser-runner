@@ -1,4 +1,4 @@
-FROM smartassert/runner:0.4
+FROM smartassert/runner:0.5
 
 RUN curl https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb --output chrome.deb \
     && apt-get install -y ./chrome.deb \

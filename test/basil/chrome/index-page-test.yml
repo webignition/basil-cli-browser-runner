@@ -1,10 +1,10 @@
 config:
   browser: chrome
-  url: http://nginx-test/index.html
+  url: http://test-nginx-container/index.html
 
 "verify page is open":
   assertions:
-    - $page.url is "http://nginx-test/index.html"
+    - $page.url is "http://test-nginx-container/index.html"
     - $page.title is "Test fixture web server default document"
     - $page.title matches "/fixture web server/"
 
@@ -22,5 +22,5 @@ config:
     - click $"a[id=link-to-form]"
 
   assertions:
-    - $page.url is "http://nginx-test/form.html"
+    - $page.url is "http://test-nginx-container/form.html"
     - $page.title is "Form"

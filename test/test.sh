@@ -8,49 +8,67 @@ TARGET_PATH="$(pwd)"/test/generated
 function setup() {
   echo "Test::setup"
 
-  docker build -f test/docker/Compiler.Dockerfile -t compiler-test .
+  docker build -f test/docker/Compiler.Dockerfile -t test-compiler-image .
+  docker rm -f test-compiler-container 2> /dev/null
+  docker create \
+    -p 9001:8000 \
+    -v "$(pwd)"/test/basil/chrome:/app/basil/chrome \
+    -v "$(pwd)"/test/basil/firefox:/app/basil/firefox \
+    -v "$(pwd)"/test/generated/chrome:/app/generated/chrome \
+    -v "$(pwd)"/test/generated/firefox:/app/generated/firefox \
+    --name test-compiler-container \
+    test-compiler-image
+  docker start test-compiler-container
 
-  docker rm nginx-test
-  docker build -f test/docker/Nginx.Dockerfile -t nginx-test .
-  docker run -d --name nginx-test nginx-test
+  docker build -f test/docker/Nginx.Dockerfile -t test-nginx-image .
+  docker rm -f test-nginx-container 2> /dev/null
+  docker run -d --name test-nginx-container test-nginx-image
 
-  docker network create test-network
-  docker network connect test-network nginx-test
+  docker network create test-network 2> /dev/null
+  docker network connect test-network test-nginx-container
 }
 
 function main() {
   echo "Test::main"
 
-  COMMAND="./bin/runner --path=generated/"
-
   for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
-    echo "Testing "${IMAGE_NAME}
+    echo "Testing ${IMAGE_NAME}"
 
     BROWSER=$(echo ${IMAGE_NAME} | cut -d '/' -f 2 | cut -d '-' -f 1)
-    SOURCE_PATH="$(pwd)"/test/basil/${BROWSER}
 
-    COMPILER_OUTPUT=$(docker run \
-      -v ${SOURCE_PATH}:/app/basil \
-      -v ${TARGET_PATH}:/app/generated \
-      -it \
-      compiler-test ./compiler --source=basil --target=generated)
+    COMPILER_OUTPUT=$( ( echo "./compiler --source=basil/${BROWSER} --target=generated/${BROWSER} "; echo "quit"; ) | nc localhost 9001)
 
-    GENERATED_TEST_FILENAME="G"$(echo ${COMPILER_OUTPUT} | xargs | cut -d 'G' -f 2)
+    if [[ $COMPILER_OUTPUT =~ (Generated.*\.php) ]]; then
+      GENERATED_TEST_FILENAME=${BASH_REMATCH}
+    else
+      echo "x generated filename extraction failed"
 
-    EXECUTABLE="${IMAGE_NAME} ${COMMAND}${GENERATED_TEST_FILENAME}"
-    docker run \
-      -v ${TARGET_PATH}:/app/generated \
-      --network=test-network \
-      -it \
-      ${EXECUTABLE}
-
-    if [ ${?} != 0 ]; then
-      echo "x" ${EXECUTABLE} "failed"
-
-      return 1
+      return 2
     fi
 
-    echo "✓" ${EXECUTABLE} "successful"
+    docker rm -f test-${BROWSER}-container 2> /dev/null
+    docker create \
+      -p 9002:8000 \
+      -v "$(pwd)"/test/generated/${BROWSER}:/app/generated \
+      --name test-${BROWSER}-container \
+      ${IMAGE_NAME}
+    docker start test-${BROWSER}-container
+
+    docker network connect test-network test-${BROWSER}-container
+
+    sleep 0.1
+
+    RUNNER_OUTPUT=$( ( echo "./bin/runner --path=generated/${GENERATED_TEST_FILENAME}"; echo "quit"; ) | nc localhost 9002)
+    docker rm -f test-${BROWSER}-container
+
+    RUNNER_OUTPUT_EXIT_CODE=$(printf "${RUNNER_OUTPUT}" | head -1)
+    if ! [[ $RUNNER_OUTPUT_EXIT_CODE =~ ^(0) ]]; then
+      echo "x ./bin/runner --path=generated/${GENERATED_TEST_FILENAME} failed: ${RUNNER_OUTPUT_EXIT_CODE}"
+
+      return ${RUNNER_OUTPUT_EXIT_CODE}
+    fi
+
+    echo "✓ ./bin/runner --path=generated/${GENERATED_TEST_FILENAME} successful"
   done
 
   return 0
@@ -59,9 +77,12 @@ function main() {
 function teardown() {
   echo "Test::teardown"
 
-  rm -rf ${TARGET_PATH}/*.php
+  rm -rf ${TARGET_PATH}/chrome/*.php
+  rm -rf ${TARGET_PATH}/firefox/*.php
 
-  docker stop nginx-test
+  docker rm -f test-compiler-container
+  docker rm -f test-nginx-container
+
   docker network rm test-network
 }
 
