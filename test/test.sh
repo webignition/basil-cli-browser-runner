@@ -36,7 +36,7 @@ function main() {
 
     BROWSER=$(echo ${IMAGE_NAME} | cut -d '/' -f 2 | cut -d '-' -f 1)
 
-    COMPILER_OUTPUT=$( ( echo "./compiler --source=basil/${BROWSER} --target=generated/${BROWSER} "; echo "quit"; ) | nc localhost 9001)
+    COMPILER_OUTPUT=$( ( echo "./compiler --source=basil/${BROWSER} --target=generated/${BROWSER} "; ) | nc localhost 9001)
 
     if [[ $COMPILER_OUTPUT =~ (Generated.*\.php) ]]; then
       GENERATED_TEST_FILENAME=${BASH_REMATCH}
@@ -58,7 +58,7 @@ function main() {
 
     sleep 0.1
 
-    RUNNER_OUTPUT=$( ( echo "./bin/runner --path=generated/${GENERATED_TEST_FILENAME}"; echo "quit"; ) | nc localhost 9002)
+    RUNNER_OUTPUT=$( ( echo "./bin/runner --path=generated/${GENERATED_TEST_FILENAME}"; ) | nc localhost 9002)
     docker rm -f test-${BROWSER}-container
 
     RUNNER_OUTPUT_EXIT_CODE=$(printf "${RUNNER_OUTPUT}" | head -1)

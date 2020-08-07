@@ -1,4 +1,5 @@
-FROM smartassert/runner:0.5
+FROM smartassert/runner:0.6
+
 
 RUN echo 'deb http://deb.debian.org/debian/ unstable main contrib non-free' >> /etc/apt/sources.list
 RUN echo 'Package: *' >> /etc/apt/preferences.d/99pin-unstable
