@@ -11,7 +11,7 @@ function setup() {
   docker build -f test/docker/Compiler.Dockerfile -t test-compiler-image .
   docker rm -f test-compiler-container 2> /dev/null
   docker create \
-    -p 9001:8000 \
+    -p 9002:8000 \
     -v "$(pwd)"/test/basil/chrome:/app/basil/chrome \
     -v "$(pwd)"/test/basil/firefox:/app/basil/firefox \
     -v "$(pwd)"/test/generated/chrome:/app/generated/chrome \
@@ -36,7 +36,7 @@ function main() {
 
     BROWSER=$(echo ${IMAGE_NAME} | cut -d '/' -f 2 | cut -d '-' -f 1)
 
-    COMPILER_OUTPUT=$( ( echo "./compiler --source=basil/${BROWSER} --target=generated/${BROWSER} "; ) | nc localhost 9001)
+    COMPILER_OUTPUT=$( ( echo "./compiler --source=/app/basil/${BROWSER} --target=/app/generated/${BROWSER} "; ) | nc localhost 9002)
 
     if [[ $COMPILER_OUTPUT =~ (Generated.*\.php) ]]; then
       GENERATED_TEST_FILENAME=${BASH_REMATCH}
@@ -48,7 +48,7 @@ function main() {
 
     docker rm -f test-${BROWSER}-container 2> /dev/null
     docker create \
-      -p 9002:8000 \
+      -p 9003:8000 \
       -v "$(pwd)"/test/generated/${BROWSER}:/app/generated \
       --name test-${BROWSER}-container \
       ${IMAGE_NAME}
@@ -58,7 +58,7 @@ function main() {
 
     sleep 0.1
 
-    RUNNER_OUTPUT=$( ( echo "./bin/runner --path=generated/${GENERATED_TEST_FILENAME}"; ) | nc localhost 9002)
+    RUNNER_OUTPUT=$( ( echo "./bin/runner --path=generated/${GENERATED_TEST_FILENAME}"; ) | nc localhost 9003)
     docker rm -f test-${BROWSER}-container
 
     RUNNER_OUTPUT_EXIT_CODE=$(printf "${RUNNER_OUTPUT}" | head -1)
