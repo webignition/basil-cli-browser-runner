@@ -1,4 +1,4 @@
-FROM smartassert/runner:0.6
+FROM smartassert/runner:0.7
 
 
 RUN echo 'deb http://deb.debian.org/debian/ unstable main contrib non-free' >> /etc/apt/sources.list
