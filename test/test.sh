@@ -8,6 +8,8 @@ TARGET_PATH="$(pwd)"/test/generated
 COMPILER_LOCAL_PORT=9002
 RUNNER_LOCAL_PORT=9003
 
+RUNNER_OUTPUT_PATH="$(pwd)"/test/runner_output
+
 function setup() {
   echo "Test::setup"
 
@@ -61,10 +63,12 @@ function main() {
 
     sleep 0.1
 
-    RUNNER_OUTPUT=$( ( echo "./bin/runner --path=generated/${GENERATED_TEST_FILENAME}"; ) | nc localhost ${RUNNER_LOCAL_PORT})
+    ( echo "./bin/runner --path=generated/${GENERATED_TEST_FILENAME}"; ) | nc localhost ${RUNNER_LOCAL_PORT} > ${RUNNER_OUTPUT_PATH}
     docker rm -f test-${BROWSER}-container
 
-    RUNNER_OUTPUT_EXIT_CODE=$(printf "${RUNNER_OUTPUT}" | head -1)
+    RUNNER_OUTPUT_EXIT_CODE=$(tail $RUNNER_OUTPUT_PATH | tail -1)
+    rm $RUNNER_OUTPUT_PATH
+
     if ! [[ $RUNNER_OUTPUT_EXIT_CODE =~ ^(0) ]]; then
       echo "x ./bin/runner --path=generated/${GENERATED_TEST_FILENAME} failed: ${RUNNER_OUTPUT_EXIT_CODE}"
 
